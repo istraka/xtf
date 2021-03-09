@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.xtf.core.event.helpers.EventHelper;
 import io.fabric8.kubernetes.api.model.Event;
 
-public class EventListTest {
+public class EventFitlersTest {
 
     private static String eventTemplate = "        {\n"
             + "            \"apiVersion\": \"v1\",\n"
@@ -59,22 +59,22 @@ public class EventListTest {
 
     @Test
     public void messageFiltrationTest() throws JsonProcessingException {
-        EventList events = new EventList(Arrays.asList(
+        List<Event> events = Arrays.asList(
                 event("2020-01-01T00:00:00Z", "Pod", "1", "Created", "Normal", "message2"),
                 event("2020-01-01T00:00:00Z", "Pod", "2", "Created", "Normal", "keyword abc"),
                 event("2020-01-01T00:00:00Z", "Pod", "3", "Created", "Normal", "random keyword random"),
                 event("2020-01-01T00:00:00Z", "Pod", "4", "Created", "Normal", "random another random"),
-                event("2020-01-01T00:00:00Z", "Pod", "5", "Created", "Normal", "message1")));
+                event("2020-01-01T00:00:00Z", "Pod", "5", "Created", "Normal", "message1"));
 
-        EventList filtered = events.filter()
-                .ofMessages("keyword.*")
-                .collect();
+        List<Event> filtered = events.stream()
+                .filter(EventFilters.ofMessages("keyword.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(1, filtered.size());
         Assertions.assertEquals("2", filtered.get(0).getInvolvedObject().getName());
 
-        filtered = events.filter()
-                .ofMessages(".*keyword.*", ".*another.*")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofMessages(".*keyword.*", ".*another.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(3, filtered.size());
         List<String> names = filtered.stream()
                 .map(event -> event.getInvolvedObject().getName())
@@ -83,30 +83,30 @@ public class EventListTest {
         Assertions.assertTrue(names.contains("3"));
         Assertions.assertTrue(names.contains("4"));
 
-        filtered = events.filter()
-                .ofMessages("nonexisting.*")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofMessages("nonexisting.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(0, filtered.size());
     }
 
     @Test
     public void reasonFiltrationTest() throws JsonProcessingException {
-        EventList events = new EventList(Arrays.asList(
+        List<Event> events = Arrays.asList(
                 event("2020-01-01T00:00:00Z", "Pod", "1", "FailedToCreateEndpoint", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "Pod", "2", "RecyclerPod", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "Pod", "3", "VolumeRecycled", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "Pod", "4", "Created", "Normal", "message"),
-                event("2020-01-01T00:00:00Z", "Pod", "5", "VolumeRecycled", "Normal", "message")));
+                event("2020-01-01T00:00:00Z", "Pod", "5", "VolumeRecycled", "Normal", "message"));
 
-        EventList filtered = events.filter()
-                .ofReasons("created")
-                .collect();
+        List<Event> filtered = events.stream()
+                .filter(EventFilters.ofReasons("created"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(1, filtered.size());
         Assertions.assertEquals("4", filtered.get(0).getInvolvedObject().getName());
 
-        filtered = events.filter()
-                .ofReasons("recyclerPod", "VolumeRecycled")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofReasons("recyclerPod", "VolumeRecycled"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(3, filtered.size());
         List<String> names = filtered.stream()
                 .map(event -> event.getInvolvedObject().getName())
@@ -115,30 +115,30 @@ public class EventListTest {
         Assertions.assertTrue(names.contains("3"));
         Assertions.assertTrue(names.contains("5"));
 
-        filtered = events.filter()
-                .ofReasons("nonexisting.*")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofReasons("nonexisting.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(0, filtered.size());
     }
 
     @Test
     public void objKindFiltrationTest() throws JsonProcessingException {
-        EventList events = new EventList(Arrays.asList(
+        List<Event> events = Arrays.asList(
                 event("2020-01-01T00:00:00Z", "persistentvolume", "1", "Created", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "Pod", "2", "Created", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "enpoints", "3", "Created", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "Pod", "4", "Created", "Normal", "message"),
-                event("2020-01-01T00:00:00Z", "weirdKind", "5", "Created", "Normal", "message")));
+                event("2020-01-01T00:00:00Z", "weirdKind", "5", "Created", "Normal", "message"));
 
-        EventList filtered = events.filter()
-                .ofObjKinds("weirdkind")
-                .collect();
+        List<Event> filtered = events.stream()
+                .filter(EventFilters.ofObjKinds("weirdkind"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(1, filtered.size());
         Assertions.assertEquals("5", filtered.get(0).getInvolvedObject().getName());
 
-        filtered = events.filter()
-                .ofObjKinds("persistentvolume", "pod")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofObjKinds("persistentvolume", "pod"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(3, filtered.size());
         List<String> names = filtered.stream()
                 .map(event -> event.getInvolvedObject().getName())
@@ -147,30 +147,30 @@ public class EventListTest {
         Assertions.assertTrue(names.contains("2"));
         Assertions.assertTrue(names.contains("4"));
 
-        filtered = events.filter()
-                .ofObjKinds("nonexisting.*")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofObjKinds("nonexisting.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(0, filtered.size());
     }
 
     @Test
     public void typeFiltrationTest() throws JsonProcessingException {
-        EventList events = new EventList(Arrays.asList(
+        List<Event> events = Arrays.asList(
                 event("2020-01-01T00:00:00Z", "Pod", "1", "Created", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "Pod", "2", "Created", "Warning", "message"),
                 event("2020-01-01T00:00:00Z", "Pod", "3", "Created", "Error", "message"),
                 event("2020-01-01T00:00:00Z", "Pod", "4", "Created", "Failure", "message"),
-                event("2020-01-01T00:00:00Z", "Pod", "5", "Created", "Normal", "message")));
+                event("2020-01-01T00:00:00Z", "Pod", "5", "Created", "Normal", "message"));
 
-        EventList filtered = events.filter()
-                .ofEventTypes("error")
-                .collect();
+        List<Event> filtered = events.stream()
+                .filter(EventFilters.ofEventTypes("error"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(1, filtered.size());
         Assertions.assertEquals("3", filtered.get(0).getInvolvedObject().getName());
 
-        filtered = events.filter()
-                .ofEventTypes("normal", "warning")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofEventTypes("normal", "warning"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(3, filtered.size());
         List<String> names = filtered.stream()
                 .map(event -> event.getInvolvedObject().getName())
@@ -179,30 +179,30 @@ public class EventListTest {
         Assertions.assertTrue(names.contains("2"));
         Assertions.assertTrue(names.contains("5"));
 
-        filtered = events.filter()
-                .ofEventTypes("nonexisting.*")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofEventTypes("nonexisting.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(0, filtered.size());
     }
 
     @Test
     public void objNameFiltrationTest() throws JsonProcessingException {
-        EventList events = new EventList(Arrays.asList(
+        List<Event> events = Arrays.asList(
                 event("2020-01-01T00:00:00Z", "1", "oneapp-deploy", "Created", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "2", "two", "Created", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "3", "oneapp-runner", "Created", "Normal", "message"),
                 event("2020-01-01T00:00:00Z", "4", "three", "Created", "Normal", "message"),
-                event("2020-01-01T00:00:00Z", "5", "four", "Created", "Normal", "message")));
+                event("2020-01-01T00:00:00Z", "5", "four", "Created", "Normal", "message"));
 
-        EventList filtered = events.filter()
-                .ofObjNames("two")
-                .collect();
+        List<Event> filtered = events.stream()
+                .filter(EventFilters.ofObjNames("two"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(1, filtered.size());
         Assertions.assertEquals("2", filtered.get(0).getInvolvedObject().getKind());
 
-        filtered = events.filter()
-                .ofObjNames("oneapp.*", "three.*")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofObjNames("oneapp.*", "three.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(3, filtered.size());
         List<String> names = filtered.stream()
                 .map(event -> event.getInvolvedObject().getKind())
@@ -211,40 +211,47 @@ public class EventListTest {
         Assertions.assertTrue(names.contains("3"));
         Assertions.assertTrue(names.contains("4"));
 
-        filtered = events.filter()
-                .ofEventTypes("nonexisting.*")
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.ofEventTypes("nonexisting.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(0, filtered.size());
     }
 
     @Test
     public void timeFiltrationTest() throws JsonProcessingException {
-        EventList events = new EventList(Arrays.asList(
+        List<Event> events = Arrays.asList(
                 event("2020-01-01T00:00:00Z", "Pod", "1", "Created", "Normal", "message"),
                 event("2020-01-01T01:00:00Z", "Pod", "2", "Created", "Normal", "message"),
                 event("2020-01-01T01:10:00Z", "Pod", "3", "Created", "Normal", "message"),
                 event("2020-01-01T02:00:00Z", "Pod", "4", "Created", "Normal", "message"),
                 event("2020-01-01T03:00:00Z", "Pod", "5", "Created", "Normal", "message"),
                 event("2020-01-01T03:33:00Z", "Pod", "6", "Created", "Normal", "message"),
-                event("2020-01-01T04:00:00Z", "Pod", "7", "Created", "Normal", "message")));
+                event("2020-01-01T04:00:00Z", "Pod", "7", "Created", "Normal", "message"));
 
-        EventList filtered = events.filter()
-                .inOneOfTimeWindows(
+        List<Event> filtered = events.stream()
+                .filter(EventFilters.inOneOfTimeWindows(
                         EventHelper.timestampToZonedDateTime("2020-01-01T01:59:00Z"),
                         EventHelper.timestampToZonedDateTime("2020-01-01T02:59:59Z"),
                         EventHelper.timestampToZonedDateTime("2020-01-01T04:00:01Z"),
-                        EventHelper.timestampToZonedDateTime("2021-01-01T03:00:01Z"))
-                .collect();
+                        EventHelper.timestampToZonedDateTime("2021-01-01T03:00:01Z")))
+                .collect(Collectors.toList());
         Assertions.assertEquals(1, filtered.size());
         Assertions.assertEquals("4", filtered.get(0).getInvolvedObject().getName());
 
-        filtered = events.filter()
-                .inOneOfTimeWindows(
+        filtered = events.stream()
+                .filter(EventFilters.after(
+                        EventHelper.timestampToZonedDateTime("2020-01-01T03:33:00Z")))
+                .collect(Collectors.toList());
+        Assertions.assertEquals(1, filtered.size());
+        Assertions.assertEquals("7", filtered.get(0).getInvolvedObject().getName());
+
+        filtered = events.stream()
+                .filter(EventFilters.inOneOfTimeWindows(
                         EventHelper.timestampToZonedDateTime("2020-01-01T00:59:00Z"),
                         EventHelper.timestampToZonedDateTime("2020-01-01T02:59:59Z"),
                         EventHelper.timestampToZonedDateTime("2020-01-01T03:00:01Z"),
-                        EventHelper.timestampToZonedDateTime("2021-01-01T03:00:01Z"))
-                .collect();
+                        EventHelper.timestampToZonedDateTime("2021-01-01T03:00:01Z")))
+                .collect(Collectors.toList());
         Assertions.assertEquals(5, filtered.size());
         List<String> names = filtered.stream()
                 .map(event -> event.getInvolvedObject().getName())
@@ -255,16 +262,16 @@ public class EventListTest {
         Assertions.assertTrue(names.contains("6"));
         Assertions.assertTrue(names.contains("7"));
 
-        filtered = events.filter()
-                .inOneOfTimeWindows(EventHelper.timestampToZonedDateTime("2021-01-01T03:00:01Z"),
-                        EventHelper.timestampToZonedDateTime("2021-01-01T03:00:01Z"))
-                .collect();
+        filtered = events.stream()
+                .filter(EventFilters.inOneOfTimeWindows(EventHelper.timestampToZonedDateTime("2021-01-01T03:00:01Z"),
+                        EventHelper.timestampToZonedDateTime("2021-01-01T03:00:01Z")))
+                .collect(Collectors.toList());
         Assertions.assertEquals(0, filtered.size());
     }
 
     @Test
     public void multipleFiltrationTest() throws JsonProcessingException {
-        EventList events = new EventList(Arrays.asList(
+        List<Event> events = Arrays.asList(
                 event("2020-01-01T00:00:00Z", "Pod", "1", "Created", "Normal", "message"),
                 event("2020-01-01T01:00:00Z", "Pod", "2", "Created", "Normal", "message"),
                 event("2020-01-01T02:00:00Z", "deploymentconfig", "no-app-build", "error", "Normal", "message"),
@@ -282,20 +289,20 @@ public class EventListTest {
                 event("2020-01-01T14:00:00Z", "Pod", "7", "Created", "Normal", "message"),
                 //looking for this one
                 event("2020-01-01T15:00:00Z", "Pod", "myapp-run", "failed", "Error", "silence foobar noise"),
-                event("2020-01-01T15:10:00Z", "Pod", "7", "Created", "Normal", "message")));
+                event("2020-01-01T15:10:00Z", "Pod", "7", "Created", "Normal", "message"));
 
-        EventList filtered = events.filter()
-                .inOneOfTimeWindows(
+        List<Event> filtered = events.stream()
+                .filter(EventFilters.inOneOfTimeWindows(
                         EventHelper.timestampToZonedDateTime("2020-01-01T06:30:00Z"),
                         EventHelper.timestampToZonedDateTime("2020-01-01T07:30:00Z"),
                         EventHelper.timestampToZonedDateTime("2020-01-01T14:30:00Z"),
-                        EventHelper.timestampToZonedDateTime("2020-01-01T15:30:00Z"))
-                .ofEventTypes("normal", "error")
-                .ofMessages(".*keyword.*", ".*foobar.*")
-                .ofReasons("created", "failed")
-                .ofObjKinds("pod", "deploymentconfig")
-                .ofObjNames("myapp.*")
-                .collect();
+                        EventHelper.timestampToZonedDateTime("2020-01-01T15:30:00Z")))
+                .filter(EventFilters.ofEventTypes("normal", "error"))
+                .filter(EventFilters.ofMessages(".*keyword.*", ".*foobar.*"))
+                .filter(EventFilters.ofReasons("created", "failed"))
+                .filter(EventFilters.ofObjKinds("pod", "deploymentconfig"))
+                .filter(EventFilters.ofObjNames("myapp.*"))
+                .collect(Collectors.toList());
         Assertions.assertEquals(2, filtered.size());
         List<String> names = filtered.stream()
                 .map(event -> event.getInvolvedObject().getName())

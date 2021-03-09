@@ -26,18 +26,18 @@ public class EventHelper {
     }
 
     public static ZonedDateTime timeOfLastEvent(OpenShift openShift) {
-        List<Event> eventList = openShift.getEventList().stream()
+        List<Event> events = openShift.getEvents().stream()
                 .filter(event -> event.getLastTimestamp() != null)
                 .collect(Collectors.toList());
-        if (eventList.isEmpty()) {
+        if (events.isEmpty()) {
             return null;
         }
 
-        eventList.sort((o1, o2) -> {
+        events.sort((o1, o2) -> {
             ZonedDateTime o1Date = EventHelper.timestampToZonedDateTime(o1.getLastTimestamp());
             ZonedDateTime o2Date = EventHelper.timestampToZonedDateTime(o2.getLastTimestamp());
             return o1Date.compareTo(o2Date);
         });
-        return EventHelper.timestampToZonedDateTime(eventList.get(eventList.size() - 1).getLastTimestamp());
+        return EventHelper.timestampToZonedDateTime(events.get(events.size() - 1).getLastTimestamp());
     }
 }

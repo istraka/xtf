@@ -2,10 +2,13 @@ package cz.xtf.core.waiting.failfast;
 
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import cz.xtf.core.event.EventList;
-import cz.xtf.core.event.EventListFilter;
+import cz.xtf.core.event.EventFilters;
 import cz.xtf.core.openshift.OpenShift;
+import io.fabric8.kubernetes.api.model.Event;
 
 /**
  * Builder for creating fail fast checks for event
@@ -78,14 +81,14 @@ public class EventFailFastCheckBuilder {
     public FailFastBuilder atLeastOneExists() {
         // function is invoked every time...everytime we get events and filter them
         failFastBuilder.addFailFastCheck(new WatchedResourcesSupplier<>(
-                () -> getFilterEventList().collect(),
-                eventList -> !eventList.isEmpty(),
-                eventList -> failFastReason(eventList, "at least one exists")));
+                this::getFilterEventList,
+                events -> !events.isEmpty(),
+                events -> failFastReason(events, "at least one exists")));
 
         return failFastBuilder;
     }
 
-    private String failFastReason(EventList eventList, String condition) {
+    private String failFastReason(List<Event> eventList, String condition) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Following events match condition: <").append(condition).append(">\n");
         eventList.forEach(e -> stringBuilder
@@ -129,37 +132,37 @@ public class EventFailFastCheckBuilder {
         return this;
     }
 
-    private EventListFilter getFilterEventList() {
-        EventListFilter filter = getEventsForAllNamespaces().filter();
+    private List<Event> getFilterEventList() {
+        Stream<Event> stream = getEventsForAllNamespaces().stream();
         if (names != null) {
-            filter.ofObjNames(names);
+            stream = stream.filter(EventFilters.ofObjNames(names));
         }
         if (after != null) {
-            filter.inOneOfTimeWindows(after, ZonedDateTime.now());
+            stream = stream.filter(EventFilters.after(after));
         }
         if (reasons != null) {
-            filter.ofReasons(reasons);
+            stream = stream.filter(EventFilters.ofReasons(reasons));
         }
         if (messages != null) {
-            filter.ofMessages(messages);
+            stream = stream.filter(EventFilters.ofMessages(messages));
         }
         if (types != null) {
-            filter.ofEventTypes(types);
+            stream = stream.filter(EventFilters.ofEventTypes(types));
         }
         if (kinds != null) {
-            filter.ofObjKinds(kinds);
+            stream = stream.filter(EventFilters.ofObjKinds(kinds));
         }
-        return filter;
+        return stream.collect(Collectors.toList());
     }
 
-    private EventList getEventsForAllNamespaces() {
-        EventList events = null;
+    private List<Event> getEventsForAllNamespaces() {
+        List<Event> events = null;
 
         for (OpenShift openShift : failFastBuilder.getOpenshifts()) {
             if (events == null) {
-                events = openShift.getEventList();
+                events = openShift.getEvents();
             } else {
-                events.addAll(openShift.getEventList());
+                events.addAll(openShift.getEvents());
             }
         }
         return events;
